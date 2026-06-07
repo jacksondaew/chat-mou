@@ -20,7 +20,7 @@ const SYSTEM_PROMPT = `<role>
 
 export async function chat(faq: string, question: string): Promise<string> {
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.0-flash-lite',
     config: {
       systemInstruction: `${SYSTEM_PROMPT}\n\n<faq>\n${faq}\n</faq>`,
     },
