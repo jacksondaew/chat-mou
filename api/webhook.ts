@@ -29,29 +29,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const body = JSON.parse(rawBody.toString()) as { events: WebhookEvent[] };
+  const faq = await fetchFAQ();
 
-  // ตอบ 200 ก่อนเสมอ ไม่งั้น LINE timeout แล้ว bot เงียบ
-  res.status(200).json({ ok: true });
+  await Promise.all(
+    body.events.map(async (event) => {
+      if (event.type !== 'message' || event.message.type !== 'text') return;
+      try {
+        const reply = await chat(faq, event.message.text);
+        await client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: 'text', text: reply }],
+        });
+      } catch (err) {
+        console.error('[replyMessage] error:', err);
+      }
+    })
+  );
 
-  try {
-    const faq = await fetchFAQ();
-    await Promise.all(
-      body.events.map(async (event) => {
-        if (event.type !== 'message' || event.message.type !== 'text') return;
-        console.log('[webhook] message:', event.message.text);
-        try {
-          const reply = await chat(faq, event.message.text);
-          console.log('[webhook] reply:', reply);
-          await client.replyMessage({
-            replyToken: event.replyToken,
-            messages: [{ type: 'text', text: reply }],
-          });
-        } catch (err) {
-          console.error('[replyMessage] error:', err);
-        }
-      })
-    );
-  } catch (err) {
-    console.error('[handler] error:', err);
-  }
+  return res.status(200).json({ ok: true });
 }
